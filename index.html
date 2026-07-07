@@ -1,134 +1,407 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>시선으로 여는 사진 (프로토타입)</title>
-    <script src="https://webgazer.cs.brown.edu/webgazer.js" type="text/javascript"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body, html { width: 100%; height: 100%; background-color: #111; font-family: sans-serif; overflow: hidden; }
-        
-        /* 메인 캔버스: 사진과 블러 효과가 그려지는 곳 */
-        #photoCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 1;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>암실 · 머무른 시선만 남는 사진</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500&display=swap');
 
-        /* 안내 메시지 레이어 */
-        #infoOverlay {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 30px;
-            text-align: center;
-            pointer-events: none;
-            font-size: 14px;
-            line-height: 1.5;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            transition: opacity 0.5s;
-        }
+  :root{
+    --black: #0c0a09;
+    --black-2: #151211;
+    --safelight: #c1391f;
+    --safelight-dim: #7a2415;
+    --paper: #eae3d3;
+    --paper-dim: #9c9488;
+    --line: rgba(234,227,211,0.14);
+  }
 
-        /* 웹캠 가이드 UI (WebGazer 기본 UI 상단에 고정) */
-        #webgazerVideoFeed, #webgazerFaceOverlay, #webgazerFaceFeedbackBox {
-            top: auto !important;
-            bottom: 20px !important;
-            left: 20px !important;
-            transform: scale(0.7);
-            transform-origin: bottom left;
-            opacity: 0.5;
-        }
-    </style>
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{
+    margin:0; padding:0; height:100%; background:var(--black); color:var(--paper);
+    font-family:'Inter', sans-serif; overflow:hidden; overscroll-behavior:none;
+  }
+  #app{ position:fixed; inset:0; display:flex; flex-direction:column; }
+
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px; letter-spacing:0.18em; text-transform:uppercase;
+    color: var(--safelight); opacity:0.9;
+  }
+  h1{
+    font-family:'Fraunces', serif; font-weight:500; font-style:italic;
+    letter-spacing:-0.01em; margin:0;
+  }
+
+  /* ---------- top bar ---------- */
+  #topbar{
+    padding: max(16px, env(safe-area-inset-top)) 20px 12px;
+    display:flex; align-items:baseline; justify-content:space-between;
+    z-index: 30;
+  }
+  #topbar h1{ font-size: 17px; color: var(--paper); }
+
+  /* ---------- SCREEN 1 : shutter ---------- */
+  #screen-camera{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+  }
+  #video-wrap{ flex:1; position:relative; overflow:hidden; background:#000; }
+  video{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    filter: blur(26px) saturate(1.05) brightness(0.9);
+    transform: scale(1.12);
+    transition: filter 0.4s ease;
+  }
+  #video-wrap::after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    box-shadow: inset 0 0 0 1px var(--line), inset 0 0 90px 20px rgba(0,0,0,0.65);
+  }
+  .safelight-tick{
+    position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.16em;
+    color: var(--safelight); display:flex; align-items:center; gap:6px;
+  }
+  .safelight-tick .dot{
+    width:6px; height:6px; border-radius:50%; background:var(--safelight);
+    box-shadow: 0 0 8px 2px var(--safelight);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:0.5;} 50%{opacity:1;} }
+
+  #camera-hint{
+    position:absolute; bottom:150px; left:0; right:0; text-align:center;
+    font-size:13px; color: var(--paper-dim); padding:0 40px; line-height:1.5;
+  }
+
+  #camera-controls{
+    position:absolute; left:0; right:0; bottom: max(30px, env(safe-area-inset-bottom));
+    display:flex; align-items:center; justify-content:center; gap: 36px;
+  }
+  .shutter-btn{
+    width:76px; height:76px; border-radius:50%;
+    background: var(--paper); border: 4px solid rgba(234,227,211,0.25);
+    box-shadow: 0 0 0 2px var(--black), 0 6px 24px rgba(0,0,0,0.5);
+    display:flex; align-items:center; justify-content:center;
+    -webkit-appearance:none; appearance:none; padding:0; cursor:pointer;
+  }
+  .shutter-btn:active{ transform: scale(0.93); }
+  .shutter-inner{ width:58px; height:58px; border-radius:50%; background: var(--safelight); }
+
+  .icon-btn{
+    width:46px; height:46px; border-radius:50%;
+    background: rgba(21,18,17,0.7); border:1px solid var(--line);
+    color: var(--paper-dim); display:flex; align-items:center; justify-content:center;
+    -webkit-appearance:none; appearance:none; cursor:pointer;
+  }
+
+  /* ---------- SCREEN 2 : reveal ---------- */
+  #screen-reveal{
+    position:absolute; inset:0; display:none; flex-direction:column; align-items:center;
+    padding: 84px 18px max(24px, env(safe-area-inset-bottom));
+  }
+  #tray{
+    position:relative; margin-top:6px; flex:1; width:100%; max-width:520px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #tray-frame{
+    position:relative; max-width:100%; max-height:100%;
+    border: 10px solid var(--black-2);
+    box-shadow: 0 0 0 1px var(--line), 0 20px 60px rgba(0,0,0,0.6),
+                0 0 60px -10px var(--safelight-dim);
+    touch-action:none;
+  }
+  #tray-frame canvas{ display:block; max-width:100%; max-height:60vh; width:auto; height:auto; }
+
+  #readout{
+    position:absolute; top: -34px; left:0; right:0;
+    display:flex; align-items:baseline; justify-content:space-between;
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.1em;
+    color: var(--paper-dim);
+  }
+  #readout b{ color: var(--safelight); font-weight:500; }
+
+  #reveal-hint{
+    margin-top:22px; font-size:13px; color: var(--paper-dim); text-align:center;
+    line-height:1.6; max-width:340px; transition: opacity 0.5s ease;
+  }
+
+  #reveal-actions{
+    display:flex; gap:12px; margin-top:22px; opacity:0; pointer-events:none;
+    transform: translateY(6px); transition: all 0.6s ease;
+  }
+  #reveal-actions.show{ opacity:1; pointer-events:auto; transform:none; }
+  .pill-btn{
+    -webkit-appearance:none; appearance:none; cursor:pointer;
+    font-family:'Inter', sans-serif; font-size:13px; font-weight:500;
+    padding: 12px 20px; border-radius: 999px; border: 1px solid var(--line);
+    background: transparent; color: var(--paper);
+  }
+  .pill-btn.primary{ background: var(--safelight); border-color: var(--safelight); color: #1a0e0a; }
+
+  #permission-error{
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    padding: 40px; text-align:center; color: var(--paper-dim); font-size:14px; line-height:1.6;
+  }
+</style>
 </head>
 <body>
+<div id="app">
 
-    <div id="infoOverlay">
-        📷 <b>카메라 권한을 허용</b>해 주세요.<br>
-        화면에 빨간 점이 나타나면, <b>점을 응시하면서 마우스로 5~6번 클릭</b>해 영점을 맞춰주세요!
+  <div id="topbar">
+    <div>
+      <div class="eyebrow">DARKROOM</div>
+      <h1>머무른 시선만, 남는다</h1>
     </div>
+  </div>
 
-    <canvas id="photoCanvas"></canvas>
+  <!-- SCREEN 1: 촬영 -->
+  <div id="screen-camera">
+    <div id="video-wrap">
+      <video id="video" autoplay muted playsinline></video>
+      <div class="safelight-tick"><span class="dot"></span>지금 무엇을 찍고 있는지는 나중에 알게 됩니다</div>
+      <div id="camera-hint">화면은 흐리게 가려져 있어요.<br/>프레임을 보지 말고, 감으로 셔터를 눌러보세요.</div>
+    </div>
+    <div id="camera-controls">
+      <button class="icon-btn" id="flip-btn" title="카메라 전환">⟲</button>
+      <button class="shutter-btn" id="shutter-btn"><span class="shutter-inner"></span></button>
+      <div style="width:46px;"></div>
+    </div>
+    <div id="permission-error">
+      카메라에 접근할 수 없습니다.<br/>
+      브라우저의 카메라 권한을 허용했는지, 이 페이지가 https(또는 localhost)로 열려 있는지 확인해주세요.
+    </div>
+  </div>
 
-    <script>
-        const canvas = document.getElementById('photoCanvas');
-        const ctx = canvas.getContext('2d');
-        const infoOverlay = document.getElementById('infoOverlay');
+  <!-- SCREEN 2: 인화(리빌) -->
+  <div id="screen-reveal">
+    <div id="tray">
+      <div id="tray-frame">
+        <div id="readout">
+          <span>DEVELOPING</span>
+          <span><b id="progress-num">0</b>%</span>
+        </div>
+        <canvas id="sharp-canvas"></canvas>
+        <canvas id="overlay-canvas" style="position:absolute; left:0; top:0;"></canvas>
+      </div>
+    </div>
+    <div id="reveal-hint">사진 위에 손가락을 올리고<br/>오래 머무를수록, 그 부분부터 서서히 선명해집니다.</div>
+    <div id="reveal-actions">
+      <button class="pill-btn" id="retake-btn">다시 찍기</button>
+      <button class="pill-btn primary" id="save-btn">저장하기</button>
+    </div>
+  </div>
 
-        // 브라우저 창 크기에 맞게 캔버스 설정
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+</div>
 
-        // 테스트용 고화질 빈티지 무드 사진 (Unsplash 무료 이미지 주소)
-        // 나중에 지수님 사진 파일(예: 'my_pic.jpg')로 변경 가능합니다.
-        const imageSrc = "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=2070";
-        
-        const img = new Image();
-        img.crossOrigin = "anonymous"; // 외부 이미지 로드를 위한 설정
-        img.src = imageSrc;
+<script>
+(function(){
+  "use strict";
 
-        img.onload = () => {
-            // 1. 처음에 이미지를 아주 흐리게(Blur) 전체 화면으로 그리기
-            ctx.filter = 'blur(40px) grayscale(30%)';
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            
-            // 2. 이미지 로딩 완료 후 시선 추적 엔진 가동
-            initEyeTracking();
-        };
+  const videoEl = document.getElementById('video');
+  const screenCamera = document.getElementById('screen-camera');
+  const screenReveal = document.getElementById('screen-reveal');
+  const shutterBtn = document.getElementById('shutter-btn');
+  const flipBtn = document.getElementById('flip-btn');
+  const permError = document.getElementById('permission-error');
+  const trayFrame = document.getElementById('tray-frame');
+  const sharpCanvas = document.getElementById('sharp-canvas');
+  const overlayCanvas = document.getElementById('overlay-canvas');
+  const progressNum = document.getElementById('progress-num');
+  const revealHint = document.getElementById('reveal-hint');
+  const revealActions = document.getElementById('reveal-actions');
+  const retakeBtn = document.getElementById('retake-btn');
+  const saveBtn = document.getElementById('save-btn');
 
-        function initEyeTracking() {
-            webgazer.setGazeListener((data, elapsedTime) => {
-                if (data == null) return;
+  let stream = null;
+  let facingMode = 'environment';
 
-                // 실시간 사용자의 시선 좌표
-                const x = data.x;
-                const y = data.y;
+  async function startCamera(){
+    stopCamera();
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: facingMode } },
+        audio: false
+      });
+      videoEl.srcObject = stream;
+      permError.style.display = 'none';
+    }catch(err){
+      permError.style.display = 'flex';
+      console.error(err);
+    }
+  }
+  function stopCamera(){
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+  }
 
-                // 영점 조절이 어느 정도 되면 안내문 변경
-                if (elapsedTime > 7000) {
-                    infoOverlay.innerHTML = "🎯 영점 조절 완료! 이제 <b>화면의 흐릿한 부분을 지긋이 바라보세요.</b>";
-                    infoOverlay.style.opacity = "0.4";
-                }
+  flipBtn.addEventListener('click', ()=>{
+    facingMode = (facingMode === 'environment') ? 'user' : 'environment';
+    startCamera();
+  });
 
-                // 3. 시선이 머무는 지점의 블러를 서서히 지워내기
-                ctx.save();
-                // 'destination-out'은 새로 그리는 영역을 투명하게 뚫어버리는 효과입니다.
-                ctx.globalCompositeOperation = 'destination-out'; 
-                
-                // 시선 중심은 완벽히 뚫고, 외곽으로 갈수록 부드럽게 번지는 그라데이션 원형 생성
-                const blurRadius = 90; // 지워지는 반경
-                const gradient = ctx.createRadialGradient(x, y, 5, x, y, blurRadius);
-                gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');      // 중심부 (완전 투명화)
-                gradient.addColorStop(0.8, 'rgba(0, 0, 0, 0.2)');  // 중간 부드러운 경계
-                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');      // 외곽 (안 지워짐)
-                
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(x, y, blurRadius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
+  shutterBtn.addEventListener('click', capturePhoto);
 
-            }).begin();
+  function capturePhoto(){
+    if(!videoEl.videoWidth) return;
+    const w = videoEl.videoWidth, h = videoEl.videoHeight;
 
-            // 빨간색 시선 예측 점 보기 활성화
-            webgazer.showPredictionPoints(true); 
+    // 선명한 원본 프레임 캡처
+    sharpCanvas.width = w; sharpCanvas.height = h;
+    const sctx = sharpCanvas.getContext('2d');
+    sctx.drawImage(videoEl, 0, 0, w, h);
+
+    stopCamera();
+    screenCamera.style.display = 'none';
+    screenReveal.style.display = 'flex';
+
+    initReveal(w, h);
+  }
+
+  retakeBtn.addEventListener('click', ()=>{
+    screenReveal.style.display = 'none';
+    screenCamera.style.display = 'flex';
+    revealActions.classList.remove('show');
+    revealHint.style.opacity = '1';
+    startCamera();
+  });
+
+  saveBtn.addEventListener('click', ()=>{
+    const link = document.createElement('a');
+    link.download = 'developed-photo.png';
+    link.href = sharpCanvas.toDataURL('image/png');
+    link.click();
+  });
+
+  // ---------------- 리빌(시선 체류) 로직 ----------------
+  let overlayCtx, blurredCanvas, blurredCtx;
+  let gridCols, gridRows, attention;
+  let maskSmall, maskCtx;
+  let pointerActive = false;
+  let pointerGx = 0, pointerGy = 0; // grid-space 좌표
+  let lastT = 0;
+  let done = false;
+  let rafId = null;
+
+  function initReveal(w, h){
+    overlayCanvas.width = w; overlayCanvas.height = h;
+    overlayCtx = overlayCanvas.getContext('2d');
+
+    // 흐린 버전 사전 렌더
+    blurredCanvas = document.createElement('canvas');
+    blurredCanvas.width = w; blurredCanvas.height = h;
+    blurredCtx = blurredCanvas.getContext('2d');
+    const blurPx = Math.max(w, h) * 0.045;
+    blurredCtx.filter = `blur(${blurPx}px)`;
+    blurredCtx.drawImage(sharpCanvas, 0, 0);
+
+    // 체류(attention) 그리드
+    gridCols = 46;
+    gridRows = Math.max(8, Math.round(gridCols * (h / w)));
+    attention = new Float32Array(gridCols * gridRows);
+
+    maskSmall = document.createElement('canvas');
+    maskSmall.width = gridCols; maskSmall.height = gridRows;
+    maskCtx = maskSmall.getContext('2d');
+
+    done = false;
+    lastT = 0;
+    pointerActive = false;
+    revealActions.classList.remove('show');
+    revealHint.style.opacity = '1';
+    progressNum.textContent = '0';
+
+    bindPointer();
+    if(rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function bindPointer(){
+    const el = trayFrame;
+    el.onpointerdown = (e)=>{ el.setPointerCapture(e.pointerId); updatePointer(e); pointerActive = true; };
+    el.onpointermove = (e)=>{ if(pointerActive) updatePointer(e); };
+    el.onpointerup = ()=>{ pointerActive = false; };
+    el.onpointercancel = ()=>{ pointerActive = false; };
+    el.onpointerleave = ()=>{ pointerActive = false; };
+  }
+
+  function updatePointer(e){
+    const rect = sharpCanvas.getBoundingClientRect();
+    const nx = (e.clientX - rect.left) / rect.width;
+    const ny = (e.clientY - rect.top) / rect.height;
+    pointerGx = Math.min(gridCols-1, Math.max(0, nx * gridCols));
+    pointerGy = Math.min(gridRows-1, Math.max(0, ny * gridRows));
+  }
+
+  function loop(t){
+    if(!lastT) lastT = t;
+    const dt = Math.min(40, t - lastT); // ms, 프레임 튐 방지
+    lastT = t;
+
+    if(pointerActive && !done){
+      const radius = 4.2;      // 그리드 셀 단위 반경
+      const rate = 0.00062;    // 체류 누적 속도 (조절하면 완성까지 걸리는 시간이 바뀜)
+      const minGx = Math.max(0, Math.floor(pointerGx - radius));
+      const maxGx = Math.min(gridCols-1, Math.ceil(pointerGx + radius));
+      const minGy = Math.max(0, Math.floor(pointerGy - radius));
+      const maxGy = Math.min(gridRows-1, Math.ceil(pointerGy + radius));
+
+      for(let gy = minGy; gy <= maxGy; gy++){
+        for(let gx = minGx; gx <= maxGx; gx++){
+          const dx = gx - pointerGx, dy = gy - pointerGy;
+          const d = Math.sqrt(dx*dx + dy*dy);
+          if(d < radius){
+            const falloff = 1 - (d / radius);
+            const idx = gy * gridCols + gx;
+            const v = attention[idx] + dt * rate * falloff;
+            attention[idx] = v > 1 ? 1 : v;
+          }
         }
+      }
+    }
 
-        // 창 크기가 바뀔 때 대응
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            ctx.filter = 'blur(40px) grayscale(30%)';
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        });
-    </script>
+    renderFrame();
+
+    if(!done){
+      let sum = 0;
+      for(let i=0;i<attention.length;i++) sum += attention[i];
+      const pct = Math.round((sum / attention.length) * 100);
+      progressNum.textContent = pct;
+      if(pct >= 97 && !done){
+        done = true;
+        revealHint.style.opacity = '0';
+        revealActions.classList.add('show');
+      }
+    }
+
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function renderFrame(){
+    // 소형 마스크 이미지 생성: 흰색 + 알파(=체류량)
+    const img = maskCtx.createImageData(gridCols, gridRows);
+    const d = img.data;
+    for(let i=0;i<attention.length;i++){
+      const a = Math.round(attention[i] * 255);
+      d[i*4] = 234; d[i*4+1] = 227; d[i*4+2] = 211; d[i*4+3] = a;
+    }
+    maskCtx.putImageData(img, 0, 0);
+
+    // 오버레이: 흐린 이미지를 그리고, 체류량만큼 지워서(sharp 노출) 부드럽게 선명해지게
+    overlayCtx.globalCompositeOperation = 'source-over';
+    overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height);
+    overlayCtx.drawImage(blurredCanvas, 0, 0);
+
+    overlayCtx.imageSmoothingEnabled = true;
+    overlayCtx.globalCompositeOperation = 'destination-out';
+    overlayCtx.drawImage(maskSmall, 0, 0, overlayCanvas.width, overlayCanvas.height);
+    overlayCtx.globalCompositeOperation = 'source-over';
+  }
+
+  // 시작
+  startCamera();
+
+  window.addEventListener('beforeunload', stopCamera);
+})();
+</script>
 </body>
 </html>
