@@ -2,147 +2,119 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-<title>암실 · 머무른 시선만 남는 사진</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>기다림의 감각</title>
+<script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
 
   :root{
-    --black: #0c0a09;
-    --black-2: #151211;
-    --safelight: #c1391f;
-    --safelight-dim: #7a2415;
-    --paper: #eae3d3;
-    --paper-dim: #9c9488;
-    --line: rgba(234,227,211,0.14);
+    --bg: #F6F5EF;
+    --bg-2: #EDECE2;
+    --paper: #FDFCF8;
+    --ink: #2E332F;
+    --ink-dim: #7A8079;
+    --sage: #5F8368;
+    --sage-soft: #C9D9C6;
+    --sand: #D9C9A0;
+    --line: rgba(46,51,47,0.12);
   }
 
-  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html,body{
-    margin:0; padding:0; height:100%; background:var(--black); color:var(--paper);
-    font-family:'Inter', sans-serif; overflow:hidden; overscroll-behavior:none;
-  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; overflow:hidden; }
   #app{ position:fixed; inset:0; display:flex; flex-direction:column; }
 
-  .eyebrow{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px; letter-spacing:0.18em; text-transform:uppercase;
-    color: var(--safelight); opacity:0.9;
+  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--sage); }
+  h1{ font-family:'Fraunces',serif; font-weight:500; font-style:italic; letter-spacing:-0.01em; margin:0; color:var(--ink); }
+
+  #topbar{ padding:22px 28px 14px; display:flex; align-items:baseline; justify-content:space-between; z-index:40; }
+  #topbar h1{ font-size:19px; }
+
+  /* ---------- 공통: 잔잔한 물결(시그니처) ---------- */
+  .ripple-wrap{ position:relative; width:1px; height:1px; }
+  .ripple{
+    position:absolute; left:50%; top:50%; border-radius:50%;
+    border:1px solid var(--sage); opacity:0; transform:translate(-50%,-50%) scale(0.4);
+    animation: ripple-out 2.4s ease-out infinite;
   }
-  h1{
-    font-family:'Fraunces', serif; font-weight:500; font-style:italic;
-    letter-spacing:-0.01em; margin:0;
+  .ripple:nth-child(2){ animation-delay:0.8s; }
+  .ripple:nth-child(3){ animation-delay:1.6s; }
+  @keyframes ripple-out{
+    0%{ width:8px; height:8px; opacity:0.55; }
+    100%{ width:120px; height:120px; opacity:0; }
   }
 
-  /* ---------- top bar ---------- */
-  #topbar{
-    padding: max(16px, env(safe-area-inset-top)) 20px 12px;
-    display:flex; align-items:baseline; justify-content:space-between;
-    z-index: 30;
+  /* ---------- SCREEN 0: 인트로 ---------- */
+  #screen-intro{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 24px; gap:28px; }
+  #screen-intro p{ max-width:420px; color:var(--ink-dim); font-size:14px; line-height:1.75; }
+  .btn{
+    -webkit-appearance:none; appearance:none; cursor:pointer; border:none;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:14px;
+    padding:14px 28px; border-radius:999px; background:var(--sage); color:var(--paper);
   }
-  #topbar h1{ font-size: 17px; color: var(--paper); }
+  .btn.ghost{ background:transparent; border:1px solid var(--line); color:var(--ink); font-weight:500; }
+  .btn-row{ display:flex; gap:10px; }
 
-  /* ---------- SCREEN 1 : shutter ---------- */
-  #screen-camera{
-    position:absolute; inset:0; display:flex; flex-direction:column;
+  /* ---------- SCREEN 1: 캘리브레이션 ---------- */
+  #screen-calib{ position:absolute; inset:0; display:none; }
+  .calib-dot{
+    position:absolute; width:20px; height:20px; border-radius:50%;
+    background:var(--sand); border:2px solid var(--paper); box-shadow:0 0 0 1px var(--line);
+    transform:translate(-50%,-50%); cursor:pointer; transition: background 0.25s ease, transform 0.2s ease;
   }
-  #video-wrap{ flex:1; position:relative; overflow:hidden; background:#000; }
+  .calib-dot.done{ background:var(--sage); }
+  .calib-dot:active{ transform:translate(-50%,-50%) scale(0.85); }
+  #calib-caption{
+    position:absolute; top:24px; left:0; right:0; text-align:center;
+    font-size:13px; color:var(--ink-dim);
+  }
+  #calib-caption b{ color:var(--sage); }
+
+  /* ---------- SCREEN 2: 촬영 ---------- */
+  #screen-camera{ position:absolute; inset:0; display:none; flex-direction:column; }
+  #video-wrap{ flex:1; position:relative; overflow:hidden; background:var(--bg-2); margin:0 22px 0; border-radius:20px; }
   video{
     position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-    filter: blur(26px) saturate(1.05) brightness(0.9);
+    filter: blur(22px) brightness(1.03);
     transform: scale(1.12);
-    transition: filter 0.4s ease;
   }
-  #video-wrap::after{
-    content:""; position:absolute; inset:0; pointer-events:none;
-    box-shadow: inset 0 0 0 1px var(--line), inset 0 0 90px 20px rgba(0,0,0,0.65);
-  }
-  .safelight-tick{
-    position:absolute; top:14px; left:50%; transform:translateX(-50%);
-    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.16em;
-    color: var(--safelight); display:flex; align-items:center; gap:6px;
-  }
-  .safelight-tick .dot{
-    width:6px; height:6px; border-radius:50%; background:var(--safelight);
-    box-shadow: 0 0 8px 2px var(--safelight);
-    animation: pulse 1.6s ease-in-out infinite;
-  }
-  @keyframes pulse{ 0%,100%{opacity:0.5;} 50%{opacity:1;} }
-
+  #video-wrap::after{ content:""; position:absolute; inset:0; border-radius:20px; pointer-events:none; box-shadow: inset 0 0 0 1px var(--line); }
   #camera-hint{
-    position:absolute; bottom:150px; left:0; right:0; text-align:center;
-    font-size:13px; color: var(--paper-dim); padding:0 40px; line-height:1.5;
+    position:absolute; top:16px; left:0; right:0; text-align:center;
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.1em; color: var(--ink-dim);
   }
-
-  #camera-controls{
-    position:absolute; left:0; right:0; bottom: max(30px, env(safe-area-inset-bottom));
-    display:flex; align-items:center; justify-content:center; gap: 36px;
-  }
+  #camera-controls{ display:flex; align-items:center; justify-content:center; gap:20px; padding:22px; }
   .shutter-btn{
-    width:76px; height:76px; border-radius:50%;
-    background: var(--paper); border: 4px solid rgba(234,227,211,0.25);
-    box-shadow: 0 0 0 2px var(--black), 0 6px 24px rgba(0,0,0,0.5);
-    display:flex; align-items:center; justify-content:center;
-    -webkit-appearance:none; appearance:none; padding:0; cursor:pointer;
+    width:64px; height:64px; border-radius:50%; background:var(--paper);
+    border:3px solid var(--sage-soft); box-shadow:0 6px 20px rgba(46,51,47,0.12);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
-  .shutter-btn:active{ transform: scale(0.93); }
-  .shutter-inner{ width:58px; height:58px; border-radius:50%; background: var(--safelight); }
+  .shutter-btn:active{ transform:scale(0.94); }
+  .shutter-inner{ width:44px; height:44px; border-radius:50%; background:var(--sage); }
 
-  .icon-btn{
-    width:46px; height:46px; border-radius:50%;
-    background: rgba(21,18,17,0.7); border:1px solid var(--line);
-    color: var(--paper-dim); display:flex; align-items:center; justify-content:center;
-    -webkit-appearance:none; appearance:none; cursor:pointer;
-  }
-
-  /* ---------- SCREEN 2 : reveal ---------- */
-  #screen-reveal{
-    position:absolute; inset:0; display:none; flex-direction:column; align-items:center;
-    padding: 84px 18px max(24px, env(safe-area-inset-bottom));
-  }
-  #tray{
-    position:relative; margin-top:6px; flex:1; width:100%; max-width:520px;
-    display:flex; align-items:center; justify-content:center;
-  }
+  /* ---------- SCREEN 3: 리빌 ---------- */
+  #screen-reveal{ position:absolute; inset:0; display:none; flex-direction:column; align-items:center; padding: 76px 20px 26px; }
+  #tray{ position:relative; flex:1; width:100%; max-width:560px; display:flex; align-items:center; justify-content:center; }
   #tray-frame{
-    position:relative; max-width:100%; max-height:100%;
-    border: 10px solid var(--black-2);
-    box-shadow: 0 0 0 1px var(--line), 0 20px 60px rgba(0,0,0,0.6),
-                0 0 60px -10px var(--safelight-dim);
-    touch-action:none;
+    position:relative; max-width:100%; max-height:100%; border-radius:16px; overflow:hidden;
+    border:8px solid var(--paper); box-shadow: 0 0 0 1px var(--line), 0 20px 50px rgba(46,51,47,0.14);
   }
-  #tray-frame canvas{ display:block; max-width:100%; max-height:60vh; width:auto; height:auto; }
-
+  #tray-frame canvas{ display:block; max-width:100%; max-height:56vh; width:auto; height:auto; }
+  #gaze-dot{
+    position:fixed; width:14px; height:14px; margin:-7px 0 0 -7px; border-radius:50%;
+    background: rgba(95,131,104,0.35); box-shadow:0 0 0 6px rgba(95,131,104,0.12);
+    pointer-events:none; z-index:60; transition: left 0.08s linear, top 0.08s linear; display:none;
+  }
   #readout{
-    position:absolute; top: -34px; left:0; right:0;
-    display:flex; align-items:baseline; justify-content:space-between;
-    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.1em;
-    color: var(--paper-dim);
+    position:absolute; top:-32px; left:0; right:0; display:flex; justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.1em; color:var(--ink-dim);
   }
-  #readout b{ color: var(--safelight); font-weight:500; }
-
-  #reveal-hint{
-    margin-top:22px; font-size:13px; color: var(--paper-dim); text-align:center;
-    line-height:1.6; max-width:340px; transition: opacity 0.5s ease;
-  }
-
-  #reveal-actions{
-    display:flex; gap:12px; margin-top:22px; opacity:0; pointer-events:none;
-    transform: translateY(6px); transition: all 0.6s ease;
-  }
+  #readout b{ color:var(--sage); font-weight:600; }
+  #reveal-hint{ margin-top:20px; font-size:13px; color:var(--ink-dim); text-align:center; line-height:1.7; max-width:360px; transition:opacity 0.5s ease; }
+  #reveal-actions{ display:flex; gap:10px; margin-top:20px; opacity:0; pointer-events:none; transform:translateY(6px); transition:all 0.6s ease; }
   #reveal-actions.show{ opacity:1; pointer-events:auto; transform:none; }
-  .pill-btn{
-    -webkit-appearance:none; appearance:none; cursor:pointer;
-    font-family:'Inter', sans-serif; font-size:13px; font-weight:500;
-    padding: 12px 20px; border-radius: 999px; border: 1px solid var(--line);
-    background: transparent; color: var(--paper);
-  }
-  .pill-btn.primary{ background: var(--safelight); border-color: var(--safelight); color: #1a0e0a; }
 
-  #permission-error{
-    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
-    padding: 40px; text-align:center; color: var(--paper-dim); font-size:14px; line-height:1.6;
-  }
+  #permission-error{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; padding:40px; text-align:center; color:var(--ink-dim); font-size:14px; line-height:1.7; }
 </style>
 </head>
 <body>
@@ -150,47 +122,60 @@
 
   <div id="topbar">
     <div>
-      <div class="eyebrow">DARKROOM</div>
-      <h1>머무른 시선만, 남는다</h1>
+      <div class="eyebrow">SENSE OF WAITING</div>
+      <h1>기다림의 감각</h1>
     </div>
   </div>
 
-  <!-- SCREEN 1: 촬영 -->
+  <!-- SCREEN 0 -->
+  <div id="screen-intro">
+    <div class="ripple-wrap"><span class="ripple"></span><span class="ripple"></span><span class="ripple"></span></div>
+    <p>
+      웹캠으로 눈이 어디에 머무는지를 어림잡아 따라갑니다. 딱 맞진 않지만,<br/>
+      가만히, 오래 바라보는 자리부터 사진이 서서히 또렷해질 만큼은 충분해요.<br/>
+      먼저 화면 곳곳을 보면서 짧게 눈맞춤을 해둘게요.
+    </p>
+    <div class="btn-row">
+      <button class="btn" id="start-btn">웹캠 켜고 시작하기</button>
+    </div>
+    <div id="permission-error">
+      웹캠에 접근할 수 없습니다.<br/>브라우저의 카메라 권한을 허용했는지 확인해주세요.
+    </div>
+  </div>
+
+  <!-- SCREEN 1: 캘리브레이션 -->
+  <div id="screen-calib">
+    <div id="calib-caption">점을 <b id="calib-count">0</b>/<span id="calib-total">27</span>번 바라보며 클릭해주세요</div>
+  </div>
+
+  <!-- SCREEN 2: 촬영 -->
   <div id="screen-camera">
     <div id="video-wrap">
       <video id="video" autoplay muted playsinline></video>
-      <div class="safelight-tick"><span class="dot"></span>지금 무엇을 찍고 있는지는 나중에 알게 됩니다</div>
-      <div id="camera-hint">화면은 흐리게 가려져 있어요.<br/>프레임을 보지 말고, 감으로 셔터를 눌러보세요.</div>
+      <div id="camera-hint">화면이 흐리게 가려져 있어요 · 감으로 셔터를 눌러보세요</div>
     </div>
     <div id="camera-controls">
-      <button class="icon-btn" id="flip-btn" title="카메라 전환">⟲</button>
       <button class="shutter-btn" id="shutter-btn"><span class="shutter-inner"></span></button>
-      <div style="width:46px;"></div>
-    </div>
-    <div id="permission-error">
-      카메라에 접근할 수 없습니다.<br/>
-      브라우저의 카메라 권한을 허용했는지, 이 페이지가 https(또는 localhost)로 열려 있는지 확인해주세요.
     </div>
   </div>
 
-  <!-- SCREEN 2: 인화(리빌) -->
+  <!-- SCREEN 3: 리빌 -->
   <div id="screen-reveal">
     <div id="tray">
       <div id="tray-frame">
-        <div id="readout">
-          <span>DEVELOPING</span>
-          <span><b id="progress-num">0</b>%</span>
-        </div>
+        <div id="readout"><span>WAITING</span><span><b id="progress-num">0</b>%</span></div>
         <canvas id="sharp-canvas"></canvas>
         <canvas id="overlay-canvas" style="position:absolute; left:0; top:0;"></canvas>
       </div>
     </div>
-    <div id="reveal-hint">사진 위에 손가락을 올리고<br/>오래 머무를수록, 그 부분부터 서서히 선명해집니다.</div>
+    <div id="reveal-hint">화면 속 사진을 가만히 바라보세요.<br/>시선이 머무는 자리부터, 물결이 퍼지듯 서서히 또렷해집니다.</div>
     <div id="reveal-actions">
-      <button class="pill-btn" id="retake-btn">다시 찍기</button>
-      <button class="pill-btn primary" id="save-btn">저장하기</button>
+      <button class="btn ghost" id="retake-btn">다시 찍기</button>
+      <button class="btn" id="save-btn">저장하기</button>
     </div>
   </div>
+
+  <div id="gaze-dot"></div>
 
 </div>
 
@@ -198,71 +183,129 @@
 (function(){
   "use strict";
 
-  const videoEl = document.getElementById('video');
+  const screenIntro = document.getElementById('screen-intro');
+  const screenCalib = document.getElementById('screen-calib');
   const screenCamera = document.getElementById('screen-camera');
   const screenReveal = document.getElementById('screen-reveal');
-  const shutterBtn = document.getElementById('shutter-btn');
-  const flipBtn = document.getElementById('flip-btn');
+  const startBtn = document.getElementById('start-btn');
   const permError = document.getElementById('permission-error');
-  const trayFrame = document.getElementById('tray-frame');
+  const videoEl = document.getElementById('video');
+  const shutterBtn = document.getElementById('shutter-btn');
   const sharpCanvas = document.getElementById('sharp-canvas');
   const overlayCanvas = document.getElementById('overlay-canvas');
+  const trayFrame = document.getElementById('tray-frame');
   const progressNum = document.getElementById('progress-num');
   const revealHint = document.getElementById('reveal-hint');
   const revealActions = document.getElementById('reveal-actions');
   const retakeBtn = document.getElementById('retake-btn');
   const saveBtn = document.getElementById('save-btn');
+  const gazeDot = document.getElementById('gaze-dot');
+  const calibCountEl = document.getElementById('calib-count');
 
-  let stream = null;
-  let facingMode = 'environment';
+  let gazeAvailable = false;
+  let gazeX = null, gazeY = null; // 페이지 좌표, 스무딩 적용
+  let previewStream = null;
 
-  async function startCamera(){
-    stopCamera();
+  // ---------------- 시작: 웹캠 + WebGazer 초기화 ----------------
+  startBtn.addEventListener('click', async ()=>{
     try{
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: facingMode } },
-        audio: false
-      });
-      videoEl.srcObject = stream;
-      permError.style.display = 'none';
+      // 권한을 먼저 한 번 확실히 받아둠
+      const test = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+      test.getTracks().forEach(t=>t.stop());
     }catch(err){
       permError.style.display = 'flex';
-      console.error(err);
+      return;
     }
-  }
-  function stopCamera(){
-    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
-  }
 
-  flipBtn.addEventListener('click', ()=>{
-    facingMode = (facingMode === 'environment') ? 'user' : 'environment';
-    startCamera();
+    try{
+      if(window.webgazer){
+        await webgazer.setRegression('ridge')
+          .setGazeListener((data)=>{
+            if(!data) return;
+            gazeAvailable = true;
+            gazeX = (gazeX==null) ? data.x : gazeX + (data.x - gazeX)*0.25;
+            gazeY = (gazeY==null) ? data.y : gazeY + (data.y - gazeY)*0.25;
+          }).begin();
+        try{
+          webgazer.showVideo(true);
+          webgazer.showFaceOverlay(true);
+          webgazer.showFaceFeedbackBox(false);
+          webgazer.showPredictionPoints(false);
+        }catch(e){}
+      }
+    }catch(e){ console.warn('WebGazer 초기화 실패, 마우스로 대체합니다.', e); }
+
+    screenIntro.style.display = 'none';
+    startCalibration();
   });
 
-  shutterBtn.addEventListener('click', capturePhoto);
+  // ---------------- 캘리브레이션 ----------------
+  const CLICKS_PER_DOT = 3;
+  function startCalibration(){
+    screenCalib.style.display = 'block';
+    const margins = [0.08, 0.5, 0.92];
+    const positions = [];
+    margins.forEach(gy=>{ margins.forEach(gx=>{ positions.push({x:gx, y:gy}); }); });
+    // 9개 지점 * 3클릭 = 27
+    document.getElementById('calib-total').textContent = positions.length * CLICKS_PER_DOT;
 
-  function capturePhoto(){
+    let totalClicks = 0;
+    positions.forEach((p, i)=>{
+      const dot = document.createElement('div');
+      dot.className = 'calib-dot';
+      dot.style.left = (p.x*100)+'%';
+      dot.style.top = (p.y*100)+'%';
+      let clicks = 0;
+      dot.addEventListener('click', ()=>{
+        clicks++; totalClicks++;
+        calibCountEl.textContent = totalClicks;
+        if(clicks >= CLICKS_PER_DOT){
+          dot.classList.add('done');
+          dot.style.pointerEvents = 'none';
+        }
+        if(totalClicks >= positions.length*CLICKS_PER_DOT){
+          setTimeout(finishCalibration, 300);
+        }
+      });
+      screenCalib.appendChild(dot);
+    });
+  }
+
+  function finishCalibration(){
+    screenCalib.style.display = 'none';
+    if(window.webgazer){ try{ webgazer.showVideo(false); webgazer.showFaceOverlay(false); }catch(e){} }
+    screenCamera.style.display = 'flex';
+    startPreview();
+  }
+
+  // ---------------- 촬영용 별도 웹캠 프리뷰 ----------------
+  async function startPreview(){
+    try{
+      previewStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+      videoEl.srcObject = previewStream;
+    }catch(err){ console.error(err); }
+  }
+  function stopPreview(){
+    if(previewStream){ previewStream.getTracks().forEach(t=>t.stop()); previewStream=null; }
+  }
+
+  shutterBtn.addEventListener('click', ()=>{
     if(!videoEl.videoWidth) return;
     const w = videoEl.videoWidth, h = videoEl.videoHeight;
-
-    // 선명한 원본 프레임 캡처
     sharpCanvas.width = w; sharpCanvas.height = h;
-    const sctx = sharpCanvas.getContext('2d');
-    sctx.drawImage(videoEl, 0, 0, w, h);
-
-    stopCamera();
+    sharpCanvas.getContext('2d').drawImage(videoEl, 0, 0, w, h);
+    stopPreview();
     screenCamera.style.display = 'none';
     screenReveal.style.display = 'flex';
-
     initReveal(w, h);
-  }
+  });
 
   retakeBtn.addEventListener('click', ()=>{
     screenReveal.style.display = 'none';
     screenCamera.style.display = 'flex';
     revealActions.classList.remove('show');
     revealHint.style.opacity = '1';
-    startCamera();
+    startPreview();
   });
 
   saveBtn.addEventListener('click', ()=>{
@@ -272,88 +315,78 @@
     link.click();
   });
 
-  // ---------------- 리빌(시선 체류) 로직 ----------------
+  // ---------------- 리빌: 시선(또는 마우스) 체류 ----------------
   let overlayCtx, blurredCanvas, blurredCtx;
   let gridCols, gridRows, attention;
   let maskSmall, maskCtx;
-  let pointerActive = false;
-  let pointerGx = 0, pointerGy = 0; // grid-space 좌표
-  let lastT = 0;
-  let done = false;
-  let rafId = null;
+  let done = false, lastT = 0, rafId = null;
+  let mouseX = null, mouseY = null;
+
+  document.addEventListener('mousemove', (e)=>{ mouseX = e.clientX; mouseY = e.clientY; });
 
   function initReveal(w, h){
     overlayCanvas.width = w; overlayCanvas.height = h;
     overlayCtx = overlayCanvas.getContext('2d');
 
-    // 흐린 버전 사전 렌더
     blurredCanvas = document.createElement('canvas');
     blurredCanvas.width = w; blurredCanvas.height = h;
     blurredCtx = blurredCanvas.getContext('2d');
-    const blurPx = Math.max(w, h) * 0.045;
+    const blurPx = Math.max(w,h)*0.045;
     blurredCtx.filter = `blur(${blurPx}px)`;
     blurredCtx.drawImage(sharpCanvas, 0, 0);
 
-    // 체류(attention) 그리드
     gridCols = 46;
-    gridRows = Math.max(8, Math.round(gridCols * (h / w)));
-    attention = new Float32Array(gridCols * gridRows);
+    gridRows = Math.max(8, Math.round(gridCols*(h/w)));
+    attention = new Float32Array(gridCols*gridRows);
 
     maskSmall = document.createElement('canvas');
     maskSmall.width = gridCols; maskSmall.height = gridRows;
     maskCtx = maskSmall.getContext('2d');
 
-    done = false;
-    lastT = 0;
-    pointerActive = false;
+    done = false; lastT = 0;
     revealActions.classList.remove('show');
     revealHint.style.opacity = '1';
     progressNum.textContent = '0';
+    gazeDot.style.display = 'block';
 
-    bindPointer();
     if(rafId) cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(loop);
   }
 
-  function bindPointer(){
-    const el = trayFrame;
-    el.onpointerdown = (e)=>{ el.setPointerCapture(e.pointerId); updatePointer(e); pointerActive = true; };
-    el.onpointermove = (e)=>{ if(pointerActive) updatePointer(e); };
-    el.onpointerup = ()=>{ pointerActive = false; };
-    el.onpointercancel = ()=>{ pointerActive = false; };
-    el.onpointerleave = ()=>{ pointerActive = false; };
-  }
-
-  function updatePointer(e){
-    const rect = sharpCanvas.getBoundingClientRect();
-    const nx = (e.clientX - rect.left) / rect.width;
-    const ny = (e.clientY - rect.top) / rect.height;
-    pointerGx = Math.min(gridCols-1, Math.max(0, nx * gridCols));
-    pointerGy = Math.min(gridRows-1, Math.max(0, ny * gridRows));
+  function currentPointer(){
+    // 시선 추정치가 있으면 우선 사용, 없으면 마우스로 대체
+    if(gazeAvailable && gazeX!=null) return { x:gazeX, y:gazeY };
+    if(mouseX!=null) return { x:mouseX, y:mouseY };
+    return null;
   }
 
   function loop(t){
     if(!lastT) lastT = t;
-    const dt = Math.min(40, t - lastT); // ms, 프레임 튐 방지
+    const dt = Math.min(40, t-lastT);
     lastT = t;
 
-    if(pointerActive && !done){
-      const radius = 4.2;      // 그리드 셀 단위 반경
-      const rate = 0.00062;    // 체류 누적 속도 (조절하면 완성까지 걸리는 시간이 바뀜)
-      const minGx = Math.max(0, Math.floor(pointerGx - radius));
-      const maxGx = Math.min(gridCols-1, Math.ceil(pointerGx + radius));
-      const minGy = Math.max(0, Math.floor(pointerGy - radius));
-      const maxGy = Math.min(gridRows-1, Math.ceil(pointerGy + radius));
+    const p = currentPointer();
+    if(p){
+      gazeDot.style.left = p.x+'px';
+      gazeDot.style.top = p.y+'px';
 
-      for(let gy = minGy; gy <= maxGy; gy++){
-        for(let gx = minGx; gx <= maxGx; gx++){
-          const dx = gx - pointerGx, dy = gy - pointerGy;
-          const d = Math.sqrt(dx*dx + dy*dy);
-          if(d < radius){
-            const falloff = 1 - (d / radius);
-            const idx = gy * gridCols + gx;
-            const v = attention[idx] + dt * rate * falloff;
-            attention[idx] = v > 1 ? 1 : v;
+      const rect = sharpCanvas.getBoundingClientRect();
+      const inside = p.x>=rect.left && p.x<=rect.right && p.y>=rect.top && p.y<=rect.bottom;
+      if(inside && !done){
+        const nx = (p.x-rect.left)/rect.width, ny=(p.y-rect.top)/rect.height;
+        const pgx = nx*gridCols, pgy = ny*gridRows;
+        const radius = 4.6, rate = 0.00058;
+        const minGx = Math.max(0, Math.floor(pgx-radius)), maxGx = Math.min(gridCols-1, Math.ceil(pgx+radius));
+        const minGy = Math.max(0, Math.floor(pgy-radius)), maxGy = Math.min(gridRows-1, Math.ceil(pgy+radius));
+        for(let gy=minGy; gy<=maxGy; gy++){
+          for(let gx=minGx; gx<=maxGx; gx++){
+            const dx=gx-pgx, dy=gy-pgy, d=Math.sqrt(dx*dx+dy*dy);
+            if(d<radius){
+              const falloff = 1-(d/radius);
+              const idx = gy*gridCols+gx;
+              const v = attention[idx] + dt*rate*falloff;
+              attention[idx] = v>1?1:v;
+            }
           }
         }
       }
@@ -362,45 +395,38 @@
     renderFrame();
 
     if(!done){
-      let sum = 0;
-      for(let i=0;i<attention.length;i++) sum += attention[i];
-      const pct = Math.round((sum / attention.length) * 100);
+      let sum=0; for(let i=0;i<attention.length;i++) sum+=attention[i];
+      const pct = Math.round((sum/attention.length)*100);
       progressNum.textContent = pct;
-      if(pct >= 97 && !done){
+      if(pct>=97){
         done = true;
-        revealHint.style.opacity = '0';
+        revealHint.style.opacity='0';
         revealActions.classList.add('show');
+        gazeDot.style.display='none';
       }
     }
-
     rafId = requestAnimationFrame(loop);
   }
 
   function renderFrame(){
-    // 소형 마스크 이미지 생성: 흰색 + 알파(=체류량)
     const img = maskCtx.createImageData(gridCols, gridRows);
     const d = img.data;
     for(let i=0;i<attention.length;i++){
-      const a = Math.round(attention[i] * 255);
-      d[i*4] = 234; d[i*4+1] = 227; d[i*4+2] = 211; d[i*4+3] = a;
+      const a = Math.round(attention[i]*255);
+      d[i*4]=253; d[i*4+1]=252; d[i*4+2]=248; d[i*4+3]=a;
     }
-    maskCtx.putImageData(img, 0, 0);
+    maskCtx.putImageData(img,0,0);
 
-    // 오버레이: 흐린 이미지를 그리고, 체류량만큼 지워서(sharp 노출) 부드럽게 선명해지게
-    overlayCtx.globalCompositeOperation = 'source-over';
+    overlayCtx.globalCompositeOperation='source-over';
     overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height);
-    overlayCtx.drawImage(blurredCanvas, 0, 0);
-
+    overlayCtx.drawImage(blurredCanvas,0,0);
     overlayCtx.imageSmoothingEnabled = true;
-    overlayCtx.globalCompositeOperation = 'destination-out';
-    overlayCtx.drawImage(maskSmall, 0, 0, overlayCanvas.width, overlayCanvas.height);
-    overlayCtx.globalCompositeOperation = 'source-over';
+    overlayCtx.globalCompositeOperation='destination-out';
+    overlayCtx.drawImage(maskSmall,0,0,overlayCanvas.width, overlayCanvas.height);
+    overlayCtx.globalCompositeOperation='source-over';
   }
 
-  // 시작
-  startCamera();
-
-  window.addEventListener('beforeunload', stopCamera);
+  window.addEventListener('beforeunload', ()=>{ stopPreview(); try{ webgazer.end(); }catch(e){} });
 })();
 </script>
 </body>
