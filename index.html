@@ -4,6 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>기다림의 감각</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@2.4.0/dist/tf-core.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@2.4.0/dist/tf-converter.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@2.4.0/dist/tf-backend-webgl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/facemesh@0.0.4/dist/facemesh.js"></script>
 <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
@@ -102,9 +106,15 @@
   #tray-frame canvas{ display:block; max-width:100%; max-height:56vh; width:auto; height:auto; }
   #gaze-dot{
     position:fixed; width:14px; height:14px; margin:-7px 0 0 -7px; border-radius:50%;
-    background: rgba(95,131,104,0.35); box-shadow:0 0 0 6px rgba(95,131,104,0.12);
+    background: rgba(95,131,104,0.45); box-shadow:0 0 0 6px rgba(95,131,104,0.15);
     pointer-events:none; z-index:60; transition: left 0.08s linear, top 0.08s linear; display:none;
   }
+  #gaze-status{
+    position:fixed; left:0; right:0; bottom:14px; text-align:center; z-index:60;
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.08em; color:var(--ink-dim);
+    pointer-events:none;
+  }
+  #gaze-status b{ color:var(--sage); }
   #readout{
     position:absolute; top:-32px; left:0; right:0; display:flex; justify-content:space-between;
     font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.1em; color:var(--ink-dim);
@@ -176,11 +186,13 @@
     <div id="reveal-hint">화면 속 사진을 가만히 바라보세요.<br/>시선이 머무는 자리부터, 물결이 퍼지듯 서서히 또렷해집니다.</div>
     <div id="reveal-actions">
       <button class="btn ghost" id="retake-btn">다시 찍기</button>
+      <button class="btn ghost" id="recalib-btn">다시 보정하기</button>
       <button class="btn" id="save-btn">저장하기</button>
     </div>
   </div>
 
   <div id="gaze-dot"></div>
+  <div id="gaze-status">시선 인식 대기 중…</div>
 
 </div>
 
@@ -205,7 +217,7 @@
   const retakeBtn = document.getElementById('retake-btn');
   const saveBtn = document.getElementById('save-btn');
   const gazeDot = document.getElementById('gaze-dot');
-  const calibCountEl = document.getElementById('calib-count');
+  const gazeStatus = document.getElementById('gaze-status');
 
   let gazeAvailable = false;
   let gazeX = null, gazeY = null; // 페이지 좌표, 스무딩 적용
@@ -225,11 +237,16 @@
     try{
       if(window.webgazer){
         await webgazer.setRegression('ridge')
+          .setTracker('TFFacemesh')
           .setGazeListener((data)=>{
             if(!data) return;
             gazeAvailable = true;
             gazeX = (gazeX==null) ? data.x : gazeX + (data.x - gazeX)*0.25;
             gazeY = (gazeY==null) ? data.y : gazeY + (data.y - gazeY)*0.25;
+            gazeDot.style.display = 'block';
+            gazeDot.style.left = gazeX+'px';
+            gazeDot.style.top = gazeY+'px';
+            gazeStatus.textContent = '시선 인식됨 · x ' + Math.round(gazeX) + ', y ' + Math.round(gazeY);
           }).begin();
         try{
           webgazer.showVideo(false);
@@ -238,16 +255,18 @@
           webgazer.showPredictionPoints(false);
         }catch(e){}
       }
-    }catch(e){ console.warn('WebGazer 초기화 실패, 마우스로 대체합니다.', e); }
+    }catch(e){ console.warn('WebGazer 초기화 실패', e); gazeStatus.textContent = '시선 인식을 시작하지 못했습니다.'; }
 
     screenIntro.style.display = 'none';
-    startCalibration();
+    startCalibration(finishCalibration);
   });
 
   // ---------------- 캘리브레이션 ----------------
   const CLICKS_PER_DOT = 3;
-  function startCalibration(){
+  function startCalibration(onDone){
+    screenCalib.innerHTML = '<div id="calib-caption">점을 <b id="calib-count">0</b>/<span id="calib-total">27</span>번 바라보며 클릭해주세요</div>';
     screenCalib.style.display = 'block';
+    const calibCount = document.getElementById('calib-count');
     const xMargins = [0.08, 0.5, 0.92];
     const yMargins = [0.24, 0.55, 0.88]; // 상단바와 겹치지 않도록 위쪽 여백을 넉넉히 둠
     const positions = [];
@@ -264,13 +283,13 @@
       let clicks = 0;
       dot.addEventListener('click', ()=>{
         clicks++; totalClicks++;
-        calibCountEl.textContent = totalClicks;
+        calibCount.textContent = totalClicks;
         if(clicks >= CLICKS_PER_DOT){
           dot.classList.add('done');
           dot.style.pointerEvents = 'none';
         }
         if(totalClicks >= positions.length*CLICKS_PER_DOT){
-          setTimeout(finishCalibration, 300);
+          setTimeout(()=>{ screenCalib.style.display='none'; onDone(); }, 300);
         }
       });
       screenCalib.appendChild(dot);
@@ -278,7 +297,6 @@
   }
 
   function finishCalibration(){
-    screenCalib.style.display = 'none';
     screenCamera.style.display = 'flex';
     startPreview();
   }
@@ -325,6 +343,11 @@
     link.download = 'developed-photo.png';
     link.href = sharpCanvas.toDataURL('image/png');
     link.click();
+  });
+
+  document.getElementById('recalib-btn').addEventListener('click', ()=>{
+    screenReveal.style.display = 'none';
+    startCalibration(()=>{ screenReveal.style.display = 'flex'; });
   });
 
   // ---------------- 리빌: 시선(또는 마우스) 체류 ----------------
