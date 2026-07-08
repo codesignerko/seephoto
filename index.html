@@ -115,6 +115,11 @@
   #reveal-actions.show{ opacity:1; pointer-events:auto; transform:none; }
 
   #permission-error{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; padding:40px; text-align:center; color:var(--ink-dim); font-size:14px; line-height:1.7; }
+
+  /* WebGazer 자체 미리보기/오버레이는 항상 숨기고, 클릭도 절대 가로채지 못하게 함 */
+  #webgazerVideoContainer, #webgazerFaceOverlay, #webgazerFaceFeedbackBox, #webgazerGazeDot{
+    display:none !important; pointer-events:none !important;
+  }
 </style>
 </head>
 <body>
@@ -227,8 +232,8 @@
             gazeY = (gazeY==null) ? data.y : gazeY + (data.y - gazeY)*0.25;
           }).begin();
         try{
-          webgazer.showVideo(true);
-          webgazer.showFaceOverlay(true);
+          webgazer.showVideo(false);
+          webgazer.showFaceOverlay(false);
           webgazer.showFaceFeedbackBox(false);
           webgazer.showPredictionPoints(false);
         }catch(e){}
@@ -243,9 +248,10 @@
   const CLICKS_PER_DOT = 3;
   function startCalibration(){
     screenCalib.style.display = 'block';
-    const margins = [0.08, 0.5, 0.92];
+    const xMargins = [0.08, 0.5, 0.92];
+    const yMargins = [0.24, 0.55, 0.88]; // 상단바와 겹치지 않도록 위쪽 여백을 넉넉히 둠
     const positions = [];
-    margins.forEach(gy=>{ margins.forEach(gx=>{ positions.push({x:gx, y:gy}); }); });
+    yMargins.forEach(gy=>{ xMargins.forEach(gx=>{ positions.push({x:gx, y:gy}); }); });
     // 9개 지점 * 3클릭 = 27
     document.getElementById('calib-total').textContent = positions.length * CLICKS_PER_DOT;
 
@@ -273,20 +279,26 @@
 
   function finishCalibration(){
     screenCalib.style.display = 'none';
-    if(window.webgazer){ try{ webgazer.showVideo(false); webgazer.showFaceOverlay(false); }catch(e){} }
     screenCamera.style.display = 'flex';
     startPreview();
   }
 
-  // ---------------- 촬영용 별도 웹캠 프리뷰 ----------------
-  async function startPreview(){
-    try{
-      previewStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
-      videoEl.srcObject = previewStream;
-    }catch(err){ console.error(err); }
+  // ---------------- 촬영용 프리뷰: WebGazer가 이미 열어둔 웹캠 스트림을 그대로 공유 ----------------
+  // 카메라 스트림을 새로 하나 더 열면 WebGazer가 쓰던 스트림이 끊겨 시선 추적이 멈추기 때문에,
+  // 반드시 같은 MediaStream을 여러 <video> 태그가 나눠서 재생하도록 함.
+  function startPreview(){
+    const wgVideo = document.getElementById('webgazerVideoFeed');
+    if(wgVideo && wgVideo.srcObject){
+      videoEl.srcObject = wgVideo.srcObject;
+      videoEl.play().catch(()=>{});
+    }else{
+      // 아직 WebGazer 스트림이 준비되지 않았다면 잠시 후 재시도
+      setTimeout(startPreview, 150);
+    }
   }
   function stopPreview(){
-    if(previewStream){ previewStream.getTracks().forEach(t=>t.stop()); previewStream=null; }
+    // 스트림은 WebGazer가 소유하고 있으므로 여기서 트랙을 멈추지 않는다 (계속 추적 필요)
+    videoEl.srcObject = null;
   }
 
   shutterBtn.addEventListener('click', ()=>{
@@ -320,9 +332,6 @@
   let gridCols, gridRows, attention;
   let maskSmall, maskCtx;
   let done = false, lastT = 0, rafId = null;
-  let mouseX = null, mouseY = null;
-
-  document.addEventListener('mousemove', (e)=>{ mouseX = e.clientX; mouseY = e.clientY; });
 
   function initReveal(w, h){
     overlayCanvas.width = w; overlayCanvas.height = h;
@@ -354,9 +363,8 @@
   }
 
   function currentPointer(){
-    // 시선 추정치가 있으면 우선 사용, 없으면 마우스로 대체
+    // 오직 WebGazer가 추정한 시선 위치만 사용
     if(gazeAvailable && gazeX!=null) return { x:gazeX, y:gazeY };
-    if(mouseX!=null) return { x:mouseX, y:mouseY };
     return null;
   }
 
