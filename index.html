@@ -2,186 +2,186 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>기다림의 감각</title>
-<script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>필름이 마르는 동안</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap');
 
   :root{
-    --bg: #F6F5EF;
-    --bg-2: #EDECE2;
-    --paper: #FDFCF8;
-    --ink: #2E332F;
-    --ink-dim: #7A8079;
-    --sage: #5F8368;
-    --sage-soft: #C9D9C6;
-    --sand: #D9C9A0;
-    --line: rgba(46,51,47,0.12);
+    --bg: #C7BB98;
+    --bg-2: #B6A97F;
+    --paper: #F6F0E2;
+    --paper-shadow: #E3D9BE;
+    --ink: #362C20;
+    --ink-dim: #83745C;
+    --stamp: #FF7A29;
+    --line: rgba(54,44,32,0.16);
   }
 
-  *{ box-sizing:border-box; }
-  html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; overflow:hidden; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; overflow:hidden; overscroll-behavior:none;
+    font-family:'Inter',sans-serif; color:var(--ink);
+    background: radial-gradient(120% 140% at 50% -10%, var(--bg) 0%, var(--bg-2) 100%);
+  }
   #app{ position:fixed; inset:0; display:flex; flex-direction:column; }
 
-  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--sage); }
-  h1{ font-family:'Fraunces',serif; font-weight:500; font-style:italic; letter-spacing:-0.01em; margin:0; color:var(--ink); }
+  /* 은은한 필름 그레인 */
+  #grain{ position:fixed; inset:0; z-index:80; pointer-events:none; opacity:0.05; mix-blend-mode:multiply; }
 
-  #topbar{ padding:22px 28px 14px; display:flex; align-items:baseline; justify-content:space-between; z-index:40; }
-  #topbar h1{ font-size:19px; }
+  .eyebrow{ font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-dim); }
+  h1{ font-family:'Caveat',cursive; font-weight:700; font-size:26px; margin:0; color:var(--ink); }
 
-  /* ---------- 공통: 잔잔한 물결(시그니처) ---------- */
-  .ripple-wrap{ position:relative; width:1px; height:1px; }
-  .ripple{
-    position:absolute; left:50%; top:50%; border-radius:50%;
-    border:1px solid var(--sage); opacity:0; transform:translate(-50%,-50%) scale(0.4);
-    animation: ripple-out 2.4s ease-out infinite;
-  }
-  .ripple:nth-child(2){ animation-delay:0.8s; }
-  .ripple:nth-child(3){ animation-delay:1.6s; }
-  @keyframes ripple-out{
-    0%{ width:8px; height:8px; opacity:0.55; }
-    100%{ width:120px; height:120px; opacity:0; }
-  }
+  #topbar{ padding: max(16px, env(safe-area-inset-top)) 22px 8px; z-index:20; }
 
-  /* ---------- SCREEN 0: 인트로 ---------- */
-  #screen-intro{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 24px; gap:28px; }
-  #screen-intro p{ max-width:420px; color:var(--ink-dim); font-size:14px; line-height:1.75; }
   .btn{
     -webkit-appearance:none; appearance:none; cursor:pointer; border:none;
     font-family:'Inter',sans-serif; font-weight:600; font-size:14px;
-    padding:14px 28px; border-radius:999px; background:var(--sage); color:var(--paper);
+    padding:13px 26px; border-radius:999px; background:var(--ink); color:var(--paper);
   }
-  .btn.ghost{ background:transparent; border:1px solid var(--line); color:var(--ink); font-weight:500; }
+  .btn.ghost{ background:transparent; border:1.5px solid var(--line); color:var(--ink); font-weight:500; }
+  .btn:active{ transform:scale(0.97); }
   .btn-row{ display:flex; gap:10px; }
 
-  /* ---------- SCREEN 1: 캘리브레이션 ---------- */
-  #screen-calib{ position:absolute; inset:0; display:none; }
-  .calib-dot{
-    position:absolute; width:20px; height:20px; border-radius:50%;
-    background:var(--sand); border:2px solid var(--paper); box-shadow:0 0 0 1px var(--line);
-    transform:translate(-50%,-50%); cursor:pointer; transition: background 0.25s ease, transform 0.2s ease;
-  }
-  .calib-dot.done{ background:var(--sage); }
-  .calib-dot:active{ transform:translate(-50%,-50%) scale(0.85); }
-  #calib-caption{
-    position:absolute; top:24px; left:0; right:0; text-align:center;
-    font-size:13px; color:var(--ink-dim);
-  }
-  #calib-caption b{ color:var(--sage); }
+  /* ---------------- SCREEN 0: 인트로 ---------------- */
+  #screen-intro{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; text-align:center; padding:0 30px; }
+  #screen-intro p{ max-width:320px; color:var(--ink-dim); font-size:14px; line-height:1.75; }
+  #screen-intro .mark{ font-family:'Caveat',cursive; font-size:22px; color:var(--stamp); }
+  #permission-error{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; padding:40px; text-align:center; color:var(--ink-dim); font-size:14px; line-height:1.7; background:var(--bg); z-index:50; }
 
-  /* ---------- SCREEN 2: 촬영 ---------- */
+  /* ---------------- SCREEN 1: 촬영(뷰파인더) ---------------- */
   #screen-camera{ position:absolute; inset:0; display:none; flex-direction:column; }
-  #video-wrap{ flex:1; position:relative; overflow:hidden; background:var(--bg-2); margin:0 22px 0; border-radius:20px; }
-  video{
-    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-    filter: blur(22px) brightness(1.03);
-    transform: scale(1.12);
+  #viewfinder-wrap{ flex:1; display:flex; align-items:center; justify-content:center; padding: 8px 22px; }
+  #viewfinder{ position:relative; width:100%; max-width:420px; aspect-ratio:1/1; background:#000; border-radius:6px; overflow:hidden;
+    box-shadow: 0 0 0 1px var(--line), 0 18px 40px rgba(54,44,32,0.28); }
+  #cam-video{ display:none; }
+  #preview-canvas{ position:absolute; inset:0; width:100%; height:100%; }
+  .corner{ position:absolute; width:22px; height:22px; border-color:rgba(246,240,226,0.85); pointer-events:none; }
+  .corner.tl{ top:10px; left:10px; border-top:2px solid; border-left:2px solid; }
+  .corner.tr{ top:10px; right:10px; border-top:2px solid; border-right:2px solid; }
+  .corner.bl{ bottom:10px; left:10px; border-bottom:2px solid; border-left:2px solid; }
+  .corner.br{ bottom:10px; right:10px; border-bottom:2px solid; border-right:2px solid; }
+  #frame-counter{
+    position:absolute; top:12px; left:16px; font-family:'Space Mono',monospace; font-size:11px;
+    letter-spacing:0.08em; color:rgba(246,240,226,0.9);
   }
-  #video-wrap::after{ content:""; position:absolute; inset:0; border-radius:20px; pointer-events:none; box-shadow: inset 0 0 0 1px var(--line); }
-  #camera-hint{
-    position:absolute; top:16px; left:0; right:0; text-align:center;
-    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.1em; color: var(--ink-dim);
+  #cam-hint{
+    position:absolute; bottom:12px; left:0; right:0; text-align:center;
+    font-size:11.5px; color:rgba(246,240,226,0.75); padding:0 30px;
   }
-  #camera-controls{ display:flex; align-items:center; justify-content:center; gap:20px; padding:22px; }
+  #camera-controls{ display:flex; align-items:center; justify-content:center; gap:34px; padding: 20px 0 max(26px, env(safe-area-inset-bottom)); }
   .shutter-btn{
-    width:64px; height:64px; border-radius:50%; background:var(--paper);
-    border:3px solid var(--sage-soft); box-shadow:0 6px 20px rgba(46,51,47,0.12);
+    width:70px; height:70px; border-radius:50%; background:var(--paper);
+    border:4px solid rgba(54,44,32,0.14); box-shadow:0 6px 20px rgba(54,44,32,0.22);
     display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
-  .shutter-btn:active{ transform:scale(0.94); }
-  .shutter-inner{ width:44px; height:44px; border-radius:50%; background:var(--sage); }
+  .shutter-btn:active{ transform:scale(0.93); }
+  .shutter-inner{ width:52px; height:52px; border-radius:50%; background:var(--ink); }
+  .icon-btn{
+    width:44px; height:44px; border-radius:50%; background:rgba(246,240,226,0.16);
+    border:1px solid rgba(246,240,226,0.35); color:var(--paper); font-size:17px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
 
-  /* ---------- SCREEN 3: 리빌 ---------- */
-  #screen-reveal{ position:absolute; inset:0; display:none; flex-direction:column; align-items:center; padding: 76px 20px 26px; }
-  #tray{ position:relative; flex:1; width:100%; max-width:560px; display:flex; align-items:center; justify-content:center; }
-  #tray-frame{
-    position:relative; max-width:100%; max-height:100%; border-radius:16px; overflow:hidden;
-    border:8px solid var(--paper); box-shadow: 0 0 0 1px var(--line), 0 20px 50px rgba(46,51,47,0.14);
+  /* ---------------- SCREEN 2: 폴라로이드 ---------------- */
+  #screen-result{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; padding: 30px 24px; overflow:hidden; }
+  #polaroid{
+    width:100%; max-width:360px; background:var(--paper); padding:18px 18px 26px;
+    border-radius:3px; box-shadow: 0 2px 0 rgba(255,255,255,0.5) inset, 0 24px 50px rgba(54,44,32,0.35);
+    transform: translateY(120%) rotate(0deg); opacity:0;
   }
-  #tray-frame canvas{ display:block; max-width:100%; max-height:56vh; width:auto; height:auto; }
-  #gaze-dot{
-    position:fixed; width:14px; height:14px; margin:-7px 0 0 -7px; border-radius:50%;
-    background: rgba(95,131,104,0.35); box-shadow:0 0 0 6px rgba(95,131,104,0.12);
-    pointer-events:none; z-index:60; transition: left 0.08s linear, top 0.08s linear; display:none;
+  #polaroid.eject{ animation: eject 0.85s cubic-bezier(.2,.8,.25,1) forwards; }
+  @keyframes eject{
+    0%{ transform: translateY(120%) rotate(0deg); opacity:0; }
+    70%{ opacity:1; }
+    100%{ transform: translateY(0) rotate(var(--tilt,-2deg)); opacity:1; }
   }
-  #readout{
-    position:absolute; top:-32px; left:0; right:0; display:flex; justify-content:space-between;
-    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.1em; color:var(--ink-dim);
+  #photo-frame{ position:relative; width:100%; aspect-ratio:1/1; background:#111; border-radius:1px; overflow:hidden; }
+  #photo-frame canvas{ position:absolute; inset:0; width:100%; height:100%; }
+  #stamp{
+    position:absolute; right:8px; bottom:7px; font-family:'Space Mono',monospace; font-weight:700;
+    font-size:11px; letter-spacing:0.06em; color:var(--stamp); text-shadow: 0 0 6px rgba(0,0,0,0.35);
   }
-  #readout b{ color:var(--sage); font-weight:600; }
-  #reveal-hint{ margin-top:20px; font-size:13px; color:var(--ink-dim); text-align:center; line-height:1.7; max-width:360px; transition:opacity 0.5s ease; }
-  #reveal-actions{ display:flex; gap:10px; margin-top:20px; opacity:0; pointer-events:none; transform:translateY(6px); transition:all 0.6s ease; }
-  #reveal-actions.show{ opacity:1; pointer-events:auto; transform:none; }
+  #caption{
+    margin-top:14px; font-family:'Caveat',cursive; font-size:21px; color:var(--ink);
+    text-align:center; outline:none; min-height:28px; opacity:0.85;
+  }
+  #dev-status{
+    margin-top:6px; text-align:center; font-family:'Space Mono',monospace; font-size:10.5px;
+    letter-spacing:0.1em; color:var(--ink-dim); transition:opacity 0.4s ease;
+  }
+  #result-actions{
+    position:absolute; bottom: max(26px, env(safe-area-inset-bottom)); left:0; right:0;
+    display:flex; gap:10px; justify-content:center; opacity:0; pointer-events:none;
+    transform:translateY(6px); transition:all 0.6s ease;
+  }
+  #result-actions.show{ opacity:1; pointer-events:auto; transform:none; }
 
-  #permission-error{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; padding:40px; text-align:center; color:var(--ink-dim); font-size:14px; line-height:1.7; }
-
-  /* WebGazer 자체 미리보기/오버레이는 항상 숨기고, 클릭도 절대 가로채지 못하게 함 */
-  #webgazerVideoContainer, #webgazerFaceOverlay, #webgazerFaceFeedbackBox, #webgazerGazeDot{
-    display:none !important; pointer-events:none !important;
+  #shake-badge{
+    position:fixed; left:0; right:0; bottom: max(96px, calc(env(safe-area-inset-bottom) + 90px));
+    text-align:center; font-family:'Space Mono',monospace; font-size:11px; color:var(--ink-dim);
+    opacity:0; transition:opacity 0.3s ease; z-index:30; pointer-events:none;
   }
+  #shake-badge.active{ opacity:1; color:var(--stamp); }
 </style>
 </head>
 <body>
 <div id="app">
+  <canvas id="grain"></canvas>
 
   <div id="topbar">
-    <div>
-      <div class="eyebrow">SENSE OF WAITING</div>
-      <h1>기다림의 감각</h1>
-    </div>
+    <div class="eyebrow">INSTANT FILM</div>
+    <h1>필름이 마르는 동안</h1>
   </div>
 
   <!-- SCREEN 0 -->
   <div id="screen-intro">
-    <div class="ripple-wrap"><span class="ripple"></span><span class="ripple"></span><span class="ripple"></span></div>
+    <div class="mark">shake to develop</div>
     <p>
-      웹캠으로 눈이 어디에 머무는지를 어림잡아 따라갑니다. 딱 맞진 않지만,<br/>
-      가만히, 오래 바라보는 자리부터 사진이 서서히 또렷해질 만큼은 충분해요.<br/>
-      먼저 화면 곳곳을 보면서 짧게 눈맞춤을 해둘게요.
+      정사각형으로 사진을 찍어요. 찍는 동안 화면은 모자이크로 가려져 있어서<br/>
+      뭘 찍었는지는 나중에야 알 수 있어요.<br/><br/>
+      사진은 시간이 지나면 저절로 선명해지고, <b>폰을 흔들수록 훨씬 빨리</b> 선명해집니다.
     </p>
-    <div class="btn-row">
-      <button class="btn" id="start-btn">웹캠 켜고 시작하기</button>
-    </div>
-    <div id="permission-error">
-      웹캠에 접근할 수 없습니다.<br/>브라우저의 카메라 권한을 허용했는지 확인해주세요.
-    </div>
+    <div class="btn-row"><button class="btn" id="start-btn">카메라 켜고 시작하기</button></div>
+    <div id="permission-error">카메라에 접근할 수 없습니다.<br/>브라우저의 카메라 권한과 https 접속 여부를 확인해주세요.</div>
   </div>
 
-  <!-- SCREEN 1: 캘리브레이션 -->
-  <div id="screen-calib">
-    <div id="calib-caption">점을 <b id="calib-count">0</b>/<span id="calib-total">27</span>번 바라보며 클릭해주세요</div>
-  </div>
-
-  <!-- SCREEN 2: 촬영 -->
+  <!-- SCREEN 1 -->
   <div id="screen-camera">
-    <div id="video-wrap">
-      <video id="video" autoplay muted playsinline></video>
-      <div id="camera-hint">화면이 흐리게 가려져 있어요 · 감으로 셔터를 눌러보세요</div>
-    </div>
-    <div id="camera-controls">
-      <button class="shutter-btn" id="shutter-btn"><span class="shutter-inner"></span></button>
-    </div>
-  </div>
-
-  <!-- SCREEN 3: 리빌 -->
-  <div id="screen-reveal">
-    <div id="tray">
-      <div id="tray-frame">
-        <div id="readout"><span>WAITING</span><span><b id="progress-num">0</b>%</span></div>
-        <canvas id="sharp-canvas"></canvas>
-        <canvas id="overlay-canvas" style="position:absolute; left:0; top:0;"></canvas>
+    <div id="viewfinder-wrap">
+      <div id="viewfinder">
+        <video id="cam-video" autoplay muted playsinline></video>
+        <canvas id="preview-canvas"></canvas>
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <div id="frame-counter">NO. <span id="frame-num">001</span></div>
+        <div id="cam-hint">모자이크 너머는 나중에 확인하세요</div>
       </div>
     </div>
-    <div id="reveal-hint">화면 속 사진을 가만히 바라보세요.<br/>시선이 머무는 자리부터, 물결이 퍼지듯 서서히 또렷해집니다.</div>
-    <div id="reveal-actions">
+    <div id="camera-controls">
+      <button class="icon-btn" id="flip-btn">⟲</button>
+      <button class="shutter-btn" id="shutter-btn"><span class="shutter-inner"></span></button>
+      <div style="width:44px;"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2 -->
+  <div id="screen-result">
+    <div id="polaroid">
+      <div id="photo-frame">
+        <canvas id="sharp-canvas"></canvas>
+        <canvas id="mosaic-canvas"></canvas>
+        <div id="stamp"></div>
+      </div>
+      <div id="caption" contenteditable="true" data-placeholder="여기에 적어보세요"></div>
+      <div id="dev-status">현상 중 · <b id="dev-pct">0</b>%</div>
+    </div>
+    <div id="result-actions">
       <button class="btn ghost" id="retake-btn">다시 찍기</button>
       <button class="btn" id="save-btn">저장하기</button>
     </div>
   </div>
 
-  <div id="gaze-dot"></div>
-
+  <div id="shake-badge">흔드는 중 · 빠르게 현상됩니다</div>
 </div>
 
 <script>
@@ -189,252 +189,230 @@
   "use strict";
 
   const screenIntro = document.getElementById('screen-intro');
-  const screenCalib = document.getElementById('screen-calib');
   const screenCamera = document.getElementById('screen-camera');
-  const screenReveal = document.getElementById('screen-reveal');
+  const screenResult = document.getElementById('screen-result');
   const startBtn = document.getElementById('start-btn');
   const permError = document.getElementById('permission-error');
-  const videoEl = document.getElementById('video');
+  const videoEl = document.getElementById('cam-video');
+  const previewCanvas = document.getElementById('preview-canvas');
   const shutterBtn = document.getElementById('shutter-btn');
+  const flipBtn = document.getElementById('flip-btn');
+  const frameNumEl = document.getElementById('frame-num');
+  const polaroid = document.getElementById('polaroid');
   const sharpCanvas = document.getElementById('sharp-canvas');
-  const overlayCanvas = document.getElementById('overlay-canvas');
-  const trayFrame = document.getElementById('tray-frame');
-  const progressNum = document.getElementById('progress-num');
-  const revealHint = document.getElementById('reveal-hint');
-  const revealActions = document.getElementById('reveal-actions');
+  const mosaicCanvas = document.getElementById('mosaic-canvas');
+  const stampEl = document.getElementById('stamp');
+  const devPct = document.getElementById('dev-pct');
+  const devStatus = document.getElementById('dev-status');
+  const resultActions = document.getElementById('result-actions');
   const retakeBtn = document.getElementById('retake-btn');
   const saveBtn = document.getElementById('save-btn');
-  const gazeDot = document.getElementById('gaze-dot');
-  const calibCountEl = document.getElementById('calib-count');
+  const shakeBadge = document.getElementById('shake-badge');
 
-  let gazeAvailable = false;
-  let gazeX = null, gazeY = null; // 페이지 좌표, 스무딩 적용
-  let previewStream = null;
+  let stream = null;
+  let facingMode = 'environment';
+  let frameCount = 0;
+  let previewRaf = null;
 
-  // ---------------- 시작: 웹캠 + WebGazer 초기화 ----------------
+  // ---------------- 필름 그레인 텍스처 ----------------
+  (function paintGrain(){
+    const c = document.getElementById('grain');
+    const w = c.width = 160, h = c.height = 160;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(w,h);
+    for(let i=0;i<img.data.length;i+=4){
+      const v = 200 + Math.random()*55;
+      img.data[i]=v; img.data[i+1]=v; img.data[i+2]=v; img.data[i+3]=255;
+    }
+    ctx.putImageData(img,0,0);
+    c.style.width='100%'; c.style.height='100%';
+    c.style.imageRendering='pixelated';
+  })();
+
+  // ---------------- 모자이크(다운샘플→업샘플) ----------------
+  const tmp = document.createElement('canvas');
+  const tmpCtx = tmp.getContext('2d');
+  function pixelate(sourceEl, sx, sy, ssize, destCtx, destSize, blocks){
+    blocks = Math.max(2, Math.round(blocks));
+    tmp.width = blocks; tmp.height = blocks;
+    tmpCtx.imageSmoothingEnabled = true;
+    tmpCtx.drawImage(sourceEl, sx, sy, ssize, ssize, 0, 0, blocks, blocks);
+    destCtx.imageSmoothingEnabled = false;
+    destCtx.clearRect(0,0,destSize,destSize);
+    destCtx.drawImage(tmp, 0, 0, blocks, blocks, 0, 0, destSize, destSize);
+  }
+
+  // ---------------- 시작: 카메라 + (iOS) 모션 권한 ----------------
   startBtn.addEventListener('click', async ()=>{
     try{
-      // 권한을 먼저 한 번 확실히 받아둠
-      const test = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
-      test.getTracks().forEach(t=>t.stop());
-    }catch(err){
-      permError.style.display = 'flex';
-      return;
-    }
+      await startCamera();
+    }catch(err){ permError.style.display='flex'; return; }
 
-    try{
-      if(window.webgazer){
-        await webgazer.setRegression('ridge')
-          .setGazeListener((data)=>{
-            if(!data) return;
-            gazeAvailable = true;
-            gazeX = (gazeX==null) ? data.x : gazeX + (data.x - gazeX)*0.25;
-            gazeY = (gazeY==null) ? data.y : gazeY + (data.y - gazeY)*0.25;
-          }).begin();
-        try{
-          webgazer.showVideo(false);
-          webgazer.showFaceOverlay(false);
-          webgazer.showFaceFeedbackBox(false);
-          webgazer.showPredictionPoints(false);
-        }catch(e){}
-      }
-    }catch(e){ console.warn('WebGazer 초기화 실패, 마우스로 대체합니다.', e); }
+    if(typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
+      try{ await DeviceMotionEvent.requestPermission(); }catch(e){}
+    }
+    bindMotion();
 
     screenIntro.style.display = 'none';
-    startCalibration();
+    screenCamera.style.display = 'flex';
+    startPreviewLoop();
   });
 
-  // ---------------- 캘리브레이션 ----------------
-  const CLICKS_PER_DOT = 3;
-  function startCalibration(){
-    screenCalib.style.display = 'block';
-    const xMargins = [0.08, 0.5, 0.92];
-    const yMargins = [0.24, 0.55, 0.88]; // 상단바와 겹치지 않도록 위쪽 여백을 넉넉히 둠
-    const positions = [];
-    yMargins.forEach(gy=>{ xMargins.forEach(gx=>{ positions.push({x:gx, y:gy}); }); });
-    // 9개 지점 * 3클릭 = 27
-    document.getElementById('calib-total').textContent = positions.length * CLICKS_PER_DOT;
-
-    let totalClicks = 0;
-    positions.forEach((p, i)=>{
-      const dot = document.createElement('div');
-      dot.className = 'calib-dot';
-      dot.style.left = (p.x*100)+'%';
-      dot.style.top = (p.y*100)+'%';
-      let clicks = 0;
-      dot.addEventListener('click', ()=>{
-        clicks++; totalClicks++;
-        calibCountEl.textContent = totalClicks;
-        if(clicks >= CLICKS_PER_DOT){
-          dot.classList.add('done');
-          dot.style.pointerEvents = 'none';
-        }
-        if(totalClicks >= positions.length*CLICKS_PER_DOT){
-          setTimeout(finishCalibration, 300);
-        }
-      });
-      screenCalib.appendChild(dot);
-    });
-  }
-
-  function finishCalibration(){
-    screenCalib.style.display = 'none';
-    screenCamera.style.display = 'flex';
-    startPreview();
-  }
-
-  // ---------------- 촬영용 프리뷰: WebGazer가 이미 열어둔 웹캠 스트림을 그대로 공유 ----------------
-  // 카메라 스트림을 새로 하나 더 열면 WebGazer가 쓰던 스트림이 끊겨 시선 추적이 멈추기 때문에,
-  // 반드시 같은 MediaStream을 여러 <video> 태그가 나눠서 재생하도록 함.
-  function startPreview(){
-    const wgVideo = document.getElementById('webgazerVideoFeed');
-    if(wgVideo && wgVideo.srcObject){
-      videoEl.srcObject = wgVideo.srcObject;
-      videoEl.play().catch(()=>{});
-    }else{
-      // 아직 WebGazer 스트림이 준비되지 않았다면 잠시 후 재시도
-      setTimeout(startPreview, 150);
+  async function startCamera(){
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal: facingMode } }, audio:false });
+    }catch(e){
+      stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode }, audio:false });
     }
-  }
-  function stopPreview(){
-    // 스트림은 WebGazer가 소유하고 있으므로 여기서 트랙을 멈추지 않는다 (계속 추적 필요)
-    videoEl.srcObject = null;
+    videoEl.srcObject = stream;
+    await videoEl.play().catch(()=>{});
   }
 
+  flipBtn.addEventListener('click', async ()=>{
+    facingMode = (facingMode==='environment') ? 'user' : 'environment';
+    try{ await startCamera(); }catch(e){}
+  });
+
+  // ---------------- 실시간 모자이크 프리뷰 ----------------
+  const PREVIEW_BLOCKS = 16;
+  function startPreviewLoop(){
+    const ctx = previewCanvas.getContext('2d');
+    function tick(){
+      if(videoEl.videoWidth){
+        const size = Math.min(videoEl.videoWidth, videoEl.videoHeight);
+        const sx = (videoEl.videoWidth - size)/2, sy = (videoEl.videoHeight - size)/2;
+        const displaySize = previewCanvas.width || 400;
+        if(previewCanvas.width !== previewCanvas.clientWidth){
+          previewCanvas.width = previewCanvas.clientWidth;
+          previewCanvas.height = previewCanvas.clientHeight;
+        }
+        pixelate(videoEl, sx, sy, size, ctx, previewCanvas.width, PREVIEW_BLOCKS);
+      }
+      previewRaf = requestAnimationFrame(tick);
+    }
+    tick();
+  }
+
+  // ---------------- 촬영 ----------------
   shutterBtn.addEventListener('click', ()=>{
     if(!videoEl.videoWidth) return;
-    const w = videoEl.videoWidth, h = videoEl.videoHeight;
-    sharpCanvas.width = w; sharpCanvas.height = h;
-    sharpCanvas.getContext('2d').drawImage(videoEl, 0, 0, w, h);
-    stopPreview();
+    const size = Math.min(videoEl.videoWidth, videoEl.videoHeight);
+    const sx = (videoEl.videoWidth - size)/2, sy = (videoEl.videoHeight - size)/2;
+    const outSize = Math.min(size, 900);
+
+    sharpCanvas.width = outSize; sharpCanvas.height = outSize;
+    const sctx = sharpCanvas.getContext('2d');
+    sctx.filter = 'saturate(1.08) contrast(1.03) sepia(0.06)';
+    sctx.drawImage(videoEl, sx, sy, size, size, 0, 0, outSize, outSize);
+
+    frameCount++;
+    frameNumEl.textContent = String(frameCount).padStart(3,'0');
+
+    cancelAnimationFrame(previewRaf);
     screenCamera.style.display = 'none';
-    screenReveal.style.display = 'flex';
-    initReveal(w, h);
+    screenResult.style.display = 'flex';
+
+    const tilt = (Math.random()*4 - 2).toFixed(1)+'deg';
+    polaroid.style.setProperty('--tilt', tilt);
+    polaroid.classList.remove('eject'); void polaroid.offsetWidth; polaroid.classList.add('eject');
+
+    stampEl.textContent = formatStamp(new Date());
+
+    initDevelop(outSize);
   });
 
-  retakeBtn.addEventListener('click', ()=>{
-    screenReveal.style.display = 'none';
+  function formatStamp(d){
+    const y = String(d.getFullYear()).slice(2);
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `'${y} ${m} ${day}`;
+  }
+
+  retakeBtn.addEventListener('click', async ()=>{
+    screenResult.style.display = 'none';
     screenCamera.style.display = 'flex';
-    revealActions.classList.remove('show');
-    revealHint.style.opacity = '1';
-    startPreview();
+    resultActions.classList.remove('show');
+    devStatus.style.opacity = '1';
+    try{ await startCamera(); }catch(e){}
+    startPreviewLoop();
   });
 
   saveBtn.addEventListener('click', ()=>{
     const link = document.createElement('a');
-    link.download = 'developed-photo.png';
+    link.download = 'instant-film.png';
     link.href = sharpCanvas.toDataURL('image/png');
     link.click();
   });
 
-  // ---------------- 리빌: 시선(또는 마우스) 체류 ----------------
-  let overlayCtx, blurredCanvas, blurredCtx;
-  let gridCols, gridRows, attention;
-  let maskSmall, maskCtx;
-  let done = false, lastT = 0, rafId = null;
+  // ---------------- 흔들림 감지 ----------------
+  let prevAcc = null;
+  let shakeEnergy = 0;
+  let shakeUiTimer = null;
 
-  function initReveal(w, h){
-    overlayCanvas.width = w; overlayCanvas.height = h;
-    overlayCtx = overlayCanvas.getContext('2d');
-
-    blurredCanvas = document.createElement('canvas');
-    blurredCanvas.width = w; blurredCanvas.height = h;
-    blurredCtx = blurredCanvas.getContext('2d');
-    const blurPx = Math.max(w,h)*0.045;
-    blurredCtx.filter = `blur(${blurPx}px)`;
-    blurredCtx.drawImage(sharpCanvas, 0, 0);
-
-    gridCols = 46;
-    gridRows = Math.max(8, Math.round(gridCols*(h/w)));
-    attention = new Float32Array(gridCols*gridRows);
-
-    maskSmall = document.createElement('canvas');
-    maskSmall.width = gridCols; maskSmall.height = gridRows;
-    maskCtx = maskSmall.getContext('2d');
-
-    done = false; lastT = 0;
-    revealActions.classList.remove('show');
-    revealHint.style.opacity = '1';
-    progressNum.textContent = '0';
-    gazeDot.style.display = 'block';
-
-    if(rafId) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(loop);
+  function bindMotion(){
+    window.addEventListener('devicemotion', (e)=>{
+      const acc = e.accelerationIncludingGravity || e.acceleration;
+      if(!acc || acc.x==null) return;
+      if(prevAcc){
+        const delta = Math.abs(acc.x-prevAcc.x) + Math.abs(acc.y-prevAcc.y) + Math.abs(acc.z-prevAcc.z);
+        if(delta > 3){
+          shakeEnergy += delta;
+          shakeBadge.classList.add('active');
+          clearTimeout(shakeUiTimer);
+          shakeUiTimer = setTimeout(()=>shakeBadge.classList.remove('active'), 400);
+        }
+      }
+      prevAcc = { x:acc.x, y:acc.y, z:acc.z };
+    });
   }
 
-  function currentPointer(){
-    // 오직 WebGazer가 추정한 시선 위치만 사용
-    if(gazeAvailable && gazeX!=null) return { x:gazeX, y:gazeY };
-    return null;
+  // ---------------- 현상(전체 이미지 모자이크 → 선명) ----------------
+  let progress = 0, lastT = 0, devRaf = null, developed = false;
+  const PASSIVE_RATE = 1 / 55000;     // 가만히 두면 약 55초 안에 완성 (조절 가능)
+  const SHAKE_FACTOR = 0.00042;       // 흔들림 에너지 → 진행도 변환 계수 (조절 가능)
+  const SHAKE_DECAY = 0.86;           // 프레임마다 흔들림 에너지 감쇠
+
+  function initDevelop(size){
+    mosaicCanvas.width = size; mosaicCanvas.height = size;
+    progress = 0; lastT = 0; developed = false; shakeEnergy = 0; prevAcc = null;
+    devPct.textContent = '0';
+    devStatus.style.opacity = '1';
+    resultActions.classList.remove('show');
+    if(devRaf) cancelAnimationFrame(devRaf);
+    devRaf = requestAnimationFrame(loop);
   }
 
   function loop(t){
     if(!lastT) lastT = t;
-    const dt = Math.min(40, t-lastT);
+    const dt = Math.min(50, t-lastT);
     lastT = t;
 
-    const p = currentPointer();
-    if(p){
-      gazeDot.style.left = p.x+'px';
-      gazeDot.style.top = p.y+'px';
+    if(!developed){
+      progress += dt * PASSIVE_RATE;
+      progress += shakeEnergy * SHAKE_FACTOR;
+      shakeEnergy *= SHAKE_DECAY;
+      if(progress >= 1){ progress = 1; developed = true; }
 
-      const rect = sharpCanvas.getBoundingClientRect();
-      const inside = p.x>=rect.left && p.x<=rect.right && p.y>=rect.top && p.y<=rect.bottom;
-      if(inside && !done){
-        const nx = (p.x-rect.left)/rect.width, ny=(p.y-rect.top)/rect.height;
-        const pgx = nx*gridCols, pgy = ny*gridRows;
-        const radius = 4.6, rate = 0.00058;
-        const minGx = Math.max(0, Math.floor(pgx-radius)), maxGx = Math.min(gridCols-1, Math.ceil(pgx+radius));
-        const minGy = Math.max(0, Math.floor(pgy-radius)), maxGy = Math.min(gridRows-1, Math.ceil(pgy+radius));
-        for(let gy=minGy; gy<=maxGy; gy++){
-          for(let gx=minGx; gx<=maxGx; gx++){
-            const dx=gx-pgx, dy=gy-pgy, d=Math.sqrt(dx*dx+dy*dy);
-            if(d<radius){
-              const falloff = 1-(d/radius);
-              const idx = gy*gridCols+gx;
-              const v = attention[idx] + dt*rate*falloff;
-              attention[idx] = v>1?1:v;
-            }
-          }
-        }
+      const blocks = 4 + progress * (mosaicCanvas.width - 4);
+      const ctx = mosaicCanvas.getContext('2d');
+      if(progress < 0.995){
+        pixelate(sharpCanvas, 0, 0, sharpCanvas.width, ctx, mosaicCanvas.width, blocks);
+      } else {
+        ctx.clearRect(0,0,mosaicCanvas.width, mosaicCanvas.height);
+      }
+
+      devPct.textContent = Math.round(progress*100);
+      if(developed){
+        devStatus.style.opacity = '0';
+        resultActions.classList.add('show');
       }
     }
 
-    renderFrame();
-
-    if(!done){
-      let sum=0; for(let i=0;i<attention.length;i++) sum+=attention[i];
-      const pct = Math.round((sum/attention.length)*100);
-      progressNum.textContent = pct;
-      if(pct>=97){
-        done = true;
-        revealHint.style.opacity='0';
-        revealActions.classList.add('show');
-        gazeDot.style.display='none';
-      }
-    }
-    rafId = requestAnimationFrame(loop);
+    devRaf = requestAnimationFrame(loop);
   }
 
-  function renderFrame(){
-    const img = maskCtx.createImageData(gridCols, gridRows);
-    const d = img.data;
-    for(let i=0;i<attention.length;i++){
-      const a = Math.round(attention[i]*255);
-      d[i*4]=253; d[i*4+1]=252; d[i*4+2]=248; d[i*4+3]=a;
-    }
-    maskCtx.putImageData(img,0,0);
-
-    overlayCtx.globalCompositeOperation='source-over';
-    overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height);
-    overlayCtx.drawImage(blurredCanvas,0,0);
-    overlayCtx.imageSmoothingEnabled = true;
-    overlayCtx.globalCompositeOperation='destination-out';
-    overlayCtx.drawImage(maskSmall,0,0,overlayCanvas.width, overlayCanvas.height);
-    overlayCtx.globalCompositeOperation='source-over';
-  }
-
-  window.addEventListener('beforeunload', ()=>{ stopPreview(); try{ webgazer.end(); }catch(e){} });
+  window.addEventListener('beforeunload', ()=>{ if(stream) stream.getTracks().forEach(t=>t.stop()); });
 })();
 </script>
 </body>
