@@ -116,7 +116,11 @@
   }
   #result-actions.show{ opacity:1; pointer-events:auto; transform:none; }
 
-  #shake-badge{
+  #sensor-debug{
+    margin-top:8px; text-align:center; font-family:'Space Mono',monospace; font-size:9.5px;
+    letter-spacing:0.04em; color: rgba(54,44,32,0.4);
+  }
+  #sensor-debug b{ color: var(--stamp); }
     position:fixed; left:0; right:0; bottom: max(96px, calc(env(safe-area-inset-bottom) + 90px));
     text-align:center; font-family:'Space Mono',monospace; font-size:11px; color:var(--ink-dim);
     opacity:0; transition:opacity 0.3s ease; z-index:30; pointer-events:none;
@@ -207,6 +211,7 @@
       <div id="caption" contenteditable="true" data-placeholder="여기에 적어보세요"></div>
       <div id="dev-status">현상 중 · <b id="dev-pct">0</b>%</div>
       <div id="shake-nudge"><span class="icon">📳</span><span class="txt">폰을 흔들면 훨씬 빨리 선명해져요</span></div>
+      <div id="sensor-debug">센서 이벤트 <b id="sensor-count">0</b>건 · 최근 세기 <b id="sensor-last">0.0</b></div>
     </div>
     <div id="result-actions">
       <button class="btn ghost" id="retake-btn">다시 찍기</button>
@@ -243,6 +248,8 @@
   const shakeBadge = document.getElementById('shake-badge');
   const shakeNudge = document.getElementById('shake-nudge');
   const shakeFlash = document.getElementById('shake-flash');
+  const sensorCountEl = document.getElementById('sensor-count');
+  const sensorLastEl = document.getElementById('sensor-last');
 
   let stream = null;
   let facingMode = 'environment';
@@ -279,14 +286,15 @@
 
   // ---------------- 시작: 카메라 + (iOS) 모션 권한 ----------------
   startBtn.addEventListener('click', async ()=>{
-    try{
-      await startCamera();
-    }catch(err){ permError.style.display='flex'; return; }
-
+    // iOS는 버튼 클릭 직후의 "제스처 유효 시간" 안에 요청해야 권한창이 뜨므로 가장 먼저 처리
     if(typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
       try{ await DeviceMotionEvent.requestPermission(); }catch(e){}
     }
     bindMotion();
+
+    try{
+      await startCamera();
+    }catch(err){ permError.style.display='flex'; return; }
 
     screenIntro.style.display = 'none';
     screenCamera.style.display = 'flex';
@@ -386,12 +394,17 @@
   let shakeUiTimer = null;
   let pctBumpTimer = null;
 
+  let sensorEventCount = 0;
+
   function bindMotion(){
     window.addEventListener('devicemotion', (e)=>{
       const acc = e.accelerationIncludingGravity || e.acceleration;
       if(!acc || acc.x==null) return;
+      sensorEventCount++;
+      sensorCountEl.textContent = sensorEventCount;
       if(prevAcc){
         const delta = Math.abs(acc.x-prevAcc.x) + Math.abs(acc.y-prevAcc.y) + Math.abs(acc.z-prevAcc.z);
+        sensorLastEl.textContent = delta.toFixed(1);
 
         if(delta > 1.8){
           shakeEnergy += delta;
